@@ -16,7 +16,7 @@ describe('[Challenge] Backdoor', function () {
         masterCopy = await (await ethers.getContractFactory('GnosisSafe', deployer)).deploy();
         walletFactory = await (await ethers.getContractFactory('GnosisSafeProxyFactory', deployer)).deploy();
         token = await (await ethers.getContractFactory('DamnValuableToken', deployer)).deploy();
-        
+
         // Deploy the registry
         walletRegistry = await (await ethers.getContractFactory('WalletRegistry', deployer)).deploy(
             masterCopy.address,
@@ -46,6 +46,22 @@ describe('[Challenge] Backdoor', function () {
 
     it('Execution', async function () {
         /** CODE YOUR SOLUTION HERE */
+
+
+        // I DIDN'T FIND A WAY TO COMPLETE THE ATTACK IN ONLY ONE TX.
+        // I TRIED TO DO EVERTYTHING IN THE CONSTRUCTOR BUT THERE IS SOMETHING THAT IS
+        // BLOCKING SOMEWHERE :/
+        const attacker = await (await ethers.getContractFactory('BackdoorAttacker', player)).deploy(
+            token.address,
+            walletFactory.address,
+            masterCopy.address,
+            walletRegistry.address,
+            users,
+            { gasLimit: 3e6 }
+        );
+
+        await attacker.connect(player).attack();
+
     });
 
     after(async function () {
@@ -56,7 +72,7 @@ describe('[Challenge] Backdoor', function () {
 
         for (let i = 0; i < users.length; i++) {
             let wallet = await walletRegistry.wallets(users[i]);
-            
+
             // User must have registered a wallet
             expect(wallet).to.not.eq(
                 ethers.constants.AddressZero,
